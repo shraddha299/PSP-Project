@@ -1,0 +1,285 @@
+import openpyxl
+import os
+
+def load_or_create_workbook(file):
+    if not os.path.exists(file):
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        sheet.append(["name", "age", "weight", "height", "bmi", "category", "goal_weight", "exercise_days"])
+        wb.save(file)
+    return openpyxl.load_workbook(file)
+
+def get_user_data(sheet, name):
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        if row[0].lower() == name.lower():
+            row = list(row) + [None] * (8 - len(row))  # Ensure 8 fields
+            return {
+                "name": row[0],
+                "age": row[1],
+                "weight": row[2],
+                "height": row[3],
+                "bmi": row[4],
+                "category": row[5],
+                "goal_weight": row[6] if row[6] is not None else row[2],
+                "exercise_days": row[7] if row[7] is not None else 0
+            }
+    return None
+
+def calculate_bmi(weight, height):
+    bmi = weight / (height * height)
+    if bmi < 18.5:
+        category = "Underweight"
+    elif 18.5 <= bmi < 24.9:
+        category = "Normal Weight"
+    elif 25 <= bmi < 29.9:
+        category = "Overweight"
+    else:
+        category = "Obese"
+    return round(bmi, 2), category
+
+def save_user_data(sheet, name, age, weight, height, bmi, category, goal_weight, exercise_days):
+    sheet.append([name, age, weight, height, bmi, category, goal_weight, exercise_days])
+
+file = "fitness_data.xlsx"
+wb = load_or_create_workbook(file)
+sheet = wb.active
+
+print("WELCOME TO FITNESS TRACKER AND GOAL SETTER APP")
+name = input("Enter your name: ")
+
+user_data = get_user_data(sheet, name)
+
+if user_data:
+    print(f"\nWelcome back, {user_data['name']}!")
+    age = user_data["age"]
+    weight = user_data["weight"]
+    height = user_data["height"]
+    bmi = user_data["bmi"]
+    category = user_data["category"]
+    goal_weight = user_data["goal_weight"]
+    exercise_days = user_data["exercise_days"]
+
+    print("\nPreviously Set Information:")
+    print(f"Age: {age}")
+    print(f"Weight: {weight} kg")
+    print(f"Height: {height} m")
+    print(f"BMI: {bmi} - {category}")
+    print(f"Goal Weight: {goal_weight} kg")
+    print(f"Planned Exercise Days: {exercise_days} per week")
+else:
+    print("\nNew user detected. Please enter your details.")
+    age = int(input("Enter your age: "))
+    weight = float(input("Enter your weight (in kg): "))
+    height = float(input("Enter your height (in m): "))
+    bmi, category = calculate_bmi(weight, height)
+    goal_weight = weight
+    exercise_days = 0
+    save_user_data(sheet, name, age, weight, height, bmi, category, goal_weight, exercise_days)
+    wb.save(file)
+    print(f"\nThank you, {name}. Your data has been saved.")
+
+print(f'\nYour BMI is {bmi}')
+print(f"You are {category}")
+
+# ---- MENU SYSTEM ----
+def show_menu():
+    print("\n***** FITNESS TRACKER MENU *****")
+    print("1. View Profile")
+    print("2. Set Fitness Goals")
+    print("3. Suggestion For Exercise")
+    print("4. Log Exercise")
+    print("5. Progress Report")
+    print("6. Track Sugar and Blood Pressure")
+    print("7. View Health Advice")
+    print("8. View Calories Burned")
+    print("9. Exit")
+
+choice = '0'
+
+while choice != '9':
+    show_menu()
+    choice = input("Enter your choice: ")
+
+    if choice == '1':
+        print(f"\nProfile for {name}")
+        print(f"Age: {age}")
+        print(f"Height: {height} m")
+        print(f"Weight: {weight} kg")
+        print(f"BMI: {bmi} - {category}")
+        print(f"Goal Weight: {goal_weight} kg")
+        print(f"Exercise Days per week: {exercise_days}")
+
+    elif choice == '2':
+        print("\n--SET YOUR FITNESS GOALS--")
+        goal_weight = float(input("Enter your target weight in kg: "))
+        exercise_days = int(input("Enter how many days per week you plan to exercise: "))
+        save_user_data(sheet, name, age, weight, height, bmi, category, goal_weight, exercise_days)
+        wb.save(file)
+
+    elif choice == '3':
+        print("\n--SUGGESTIONS FOR EXERCISE ROUTINE--")
+        if category == "Underweight":
+            print("- Running: 1 kilometer per day")
+            print("- Steps: 500 steps per week")
+            print("- Cycling: 15 minutes daily")
+            print("- Yoga: 2 times a week")
+            print("- Pushups: 10 pushups per week")
+        elif category == "Normal Weight":
+            print("- Running: 2 kilometers per day")
+            print("- Steps: 1500 steps per week")
+            print("- Cycling: 40 minutes daily")
+            print("- Yoga: 3 times a week")
+            print("- Pushups: 20 pushups per week")
+        elif category == "Overweight":
+            print("- Running: 2–3 kilometers per day")
+            print("- Steps: 2000 steps per week")
+            print("- Cycling: 3–4 times a week, 40 min daily")
+            print("- Yoga: 10 minutes daily")
+            print("- Pushups: 10 pushups daily")
+        else:
+            print("- Running: At least 3 kilometers daily")
+            print("- Steps: 50 minutes daily")
+            print("- Cycling: 3–4 times a week, 40 min daily")
+            print("- Yoga: 20 minutes daily")
+            print("- Pushups: 10–15 pushups per week")
+
+    elif choice == '4':
+        print("\n------EXERCISE LOG------")
+        for day in range(1, exercise_days + 1):
+            print(f"\nDay {day} of exercise — ")
+            exercises = ['Running', 'Steps', 'Yoga', 'Pushups', 'Cycling']
+            print("Available exercises:", exercises)
+            selected = input("Enter the exercise you want to do: ")
+
+            if selected in exercises:
+                goal = int(input(f"Enter goal for {selected}: "))
+                done = int(input(f"Enter amount completed for {selected}: "))
+
+                if done >= goal:
+                    print("GOOD JOB! YOU DID IT!")
+                else:
+                    print("DON'T GIVE UP! YOU CAN DO IT!")
+            else:
+                print("Invalid exercise.")
+
+    elif choice == '5':
+        progress = ((weight - goal_weight) / weight) * 100
+        print("\n*PROGRESS REPORT*")
+        print(f"Current weight: {weight} kg, Target weight: {goal_weight} kg")
+        print(f"Progress towards goal: {progress:.2f}% completed")
+
+    elif choice == '6':
+        sugar = int(input("Enter your Blood Sugar Level (mg/dl): "))
+        if sugar < 70:
+            sugar_status = "Low blood sugar"
+        elif sugar < 99:
+            sugar_status = "Normal"
+        elif sugar < 125:
+            sugar_status = "Pre-Diabetes"
+        else:
+            sugar_status = "Diabetic"
+
+        print("\n------ FOOD SUGAR TEST ------")
+        sugar_level = 100
+        food_sugar_impact = {
+            "Fruits": 10,
+            "Sweets": 30,
+            "Vegetables": 5,
+            "Rice": 20,
+            "Bread": 15,
+            "Soft-drinks": 40
+        }
+
+        while True:
+            food = input("Enter food you ate (or type 'exit' to quit): ")
+            if food == "exit":
+                break
+            elif food in food_sugar_impact:
+                sugar_level += food_sugar_impact[food]
+            else:
+                print("Food not found in database")
+
+        print(f"Sugar level is {sugar_level} mg/dl")
+        if sugar_level < 70:
+            print("Low! Eat something sugary.")
+        elif sugar_level < 140:
+            print("Normal. Maintain your diet.")
+        else:
+            print("High. Reduce sugar intake and exercise.")
+
+        systolic = int(input("Enter your Systolic BP (mmHg): "))
+        diastolic = int(input("Enter your Diastolic BP (mmHg): "))
+
+        if systolic < 90 or diastolic < 60:
+            bp_level = "Low Blood Pressure"
+        elif systolic <= 120 and diastolic <= 80:
+            bp_level = "Normal Blood Pressure"
+        elif systolic <= 139 or diastolic <= 89:
+            bp_level = "Prehypertension"
+        else:
+            bp_level = "High Blood Pressure"
+
+        print("\n---- HEALTH ADVICE ----")
+        if sugar_status == "Low blood sugar":
+            print("Eat small meals frequently. Include proteins and complex carbs.")
+        elif sugar_status == "Normal":
+            print("Stick to a balanced diet. Focus on low glycemic index foods.")
+        elif sugar_status == "Pre-Diabetes":
+            print("Reduce sugar intake, increase fiber and whole grains.")
+        else:
+            print("Monitor sugar, follow a high-fiber diet.")
+
+        if bp_level == "Low Blood Pressure":
+            print("Increase salt and fluids, avoid standing quickly.")
+        elif bp_level == "Normal Blood Pressure":
+            print("Keep a heart-healthy diet and stay active.")
+        elif bp_level == "Prehypertension":
+            print("Reduce sodium, manage stress, and exercise.")
+        else:
+            print("Avoid high-sodium foods and monitor BP regularly.")
+
+    elif choice == '7':
+        print("\n----- HEALTH ADVICE -----")
+        if category == "Underweight":
+            print("Gain muscle mass with calorie-dense, nutritious food.")
+        elif category == "Normal Weight":
+            print("Maintain your weight and healthy habits.")
+        elif category == "Overweight":
+            print("Exercise regularly and control portions.")
+        else:
+            print("Take a balanced diet, reduce processed foods.")
+
+    elif choice == '8':
+        print("\n----- CALORIES BURNED -----")
+
+        def calculate_calories_burned(exercise, duration, category):
+            MET_values = {
+                "Running": {"Underweight": 9.0, "Normal Weight": 9.8, "Overweight": 10.5, "Obese": 11.0},
+                "Cycling": {"Underweight": 7.0, "Normal Weight": 7.5, "Overweight": 8.0, "Obese": 8.5},
+                "Yoga": {"Underweight": 2.5, "Normal Weight": 3.0, "Overweight": 3.5, "Obese": 4.0},
+                "Walking": {"Underweight": 3.5, "Normal Weight": 3.8, "Overweight": 4.2, "Obese": 4.5},
+                "Pushups": {"Underweight": 5.0, "Normal Weight": 8.0, "Overweight": 15.0, "Obese": 20.0}
+            }
+
+            if exercise not in MET_values or category not in MET_values[exercise]:
+                print("Invalid input")
+                return
+            MET = MET_values[exercise][category]
+            calories = (MET * duration) / 60
+            print(f"You burned approximately {calories:.2f} calories.")
+
+        exercise = input("Enter exercise name (Running, Cycling, Yoga, Walking, Pushups): ")
+        duration = int(input("Enter duration in minutes: "))
+        calculate_calories_burned(exercise, duration, category)
+
+    elif choice == '9':
+        print("Thank you for using Fitness Tracker. Stay Healthy!")
+        break
+
+    else:
+        print("Invalid Choice! Please enter a number from 1 to 9.")
+
+print("\nNUTRITION TIPS: Eat a balanced diet rich in proteins, healthy fats, and fiber.")
+print("Stay active, stay motivated, and achieve your fitness goals!")
+print("-------------- THANK YOU FOR USING THIS APP --------------")
+print("HOPE TO SEE YOU AGAIN!!!!!!!")
